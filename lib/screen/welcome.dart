@@ -20,9 +20,8 @@ class WelcomePage extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                        Color(0xFF1EAFFE), // biru terang (atas)
-                       Color(0xFF126998), // biru gelap (bawah)
-                     
+                      Color(0xFF1EAFFE), // biru terang (atas)
+                      Color(0xFF126998), // biru gelap (bawah)
                     ],
                   ),
                 ),
@@ -56,8 +55,7 @@ class WelcomePage extends StatelessWidget {
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
                         height: 1,
-                      fontFamily: "GreatVibes"
-
+                        fontFamily: "GreatVibes",
                       ),
                     ),
 
@@ -110,17 +108,15 @@ class WelcomePage extends StatelessWidget {
                     const Spacer(),
 
                     // IMAGE
-// IMAGE
-Transform.scale(
-  scale: 1.3,   // semakin besar angkanya → gambar semakin besar
-  child: Image.asset(
-    "assets/welcome.png",
-    fit: BoxFit.contain,
-  ),
-),
-
-
-                 
+                    // IMAGE
+                    Transform.scale(
+                      scale:
+                          1.3, // semakin besar angkanya → gambar semakin besar
+                      child: Image.asset(
+                        "assets/welcome.png",
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ],
                 ),
               ),
