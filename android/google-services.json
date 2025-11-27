@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "705415961794",
+    "project_id": "ujiaja-c2d1e",
+    "storage_bucket": "ujiaja-c2d1e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:705415961794:android:b7a524d6177d3a02b2af5b",
+        "android_client_info": {
+          "package_name": "com.DRV.ujiaja"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtpZN8Ynco5IwLe65UcZP4d8lX9ei5FD4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
