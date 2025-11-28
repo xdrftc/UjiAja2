@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'welcome2.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -85,7 +86,14 @@ class WelcomePage extends StatelessWidget {
                           ),
                         ),
                         OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HomeUjiAjaPage(),
+                              ),
+                            );
+                          },
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white),
                             foregroundColor: Colors.white,

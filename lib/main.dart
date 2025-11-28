@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; // Generate dari Firebase Console
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ujiaja/screen/welcome.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await Supabase.initialize(
+    url: 'https://hdqdhfixicfgpcpvtrbk.supabase.co',
+    anonKey: 'sb_secret_XsCpGfz1caxDpK12mnzQ0A_LkBxPfkz',
+  );
+
   runApp(const MyApp());
 }
 
+final supabase = Supabase.instance.client;
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp();
+    return MaterialApp(home: const WelcomePage());
   }
 }
