@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ujiaja/screen/siswa/homescreen_siswa/daftarjurusan.dart';
+import 'dart:math';
+
+final supabase = Supabase.instance.client;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,76 +17,86 @@ class _LoginPageState extends State<LoginPage> {
   final _nisnController = TextEditingController();
   bool _isLoading = false;
 
-  // ==================== LOGIN TANPA CLOUD FUNCTION ====================
+  String _generatePassword() {
+    return (10000000 + Random().nextInt(90000000)).toString();
+  }
+
   Future<void> _login() async {
     final nama = _namaController.text.trim();
     final nisn = _nisnController.text.trim();
 
     if (nama.isEmpty || nisn.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Nama dan NISN harus diisi")),
-      );
+      _showSnackBar("Nama dan NISN harus diisi");
+      return;
+    }
+
+    if (!RegExp(r'^\d{10}$').hasMatch(nisn)) {
+      _showSnackBar("NISN harus 10 digit angka");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final email = '$nisn@ujiaja.local';
 
-      // 1. Cek apakah NISN sudah terdaftar
-      final doc = await firestore.collection('siswa').doc(nisn).get();
+      // 1. Cek apakah siswa sudah ada
+      final siswaResponse = await supabase
+          .from('siswa')
+          .select()
+          .eq('nisn', nisn)
+          .maybeSingle();
 
-      if (doc.exists) {
-        final data = doc.data()!;
+      if (siswaResponse != null) {
+        final data = siswaResponse as Map;
         if (data['nama'].toString().toLowerCase() != nama.toLowerCase()) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Nama tidak sesuai dengan NISN")),
-          );
-          setState(() => _isLoading = false);
+          _showSnackBar("Nama tidak sesuai dengan NISN");
           return;
         }
-      } else {
-        // 2. Daftar otomatis jika belum ada
-        await firestore.collection('siswa').doc(nisn).set({
-          'nama': nama,
+      }
+
+      // 2. Login / Register via Supabase Auth
+      final authResponse = await supabase.auth.signInWithPassword(
+        email: email,
+        password: email, // password = email (sementara)
+      );
+
+      if (authResponse.user == null) {
+        // Jika belum ada, register dulu
+        final password = _generatePassword();
+        await supabase.auth.signUp(email: email, password: password);
+
+        // Simpan data siswa
+        await supabase.from('siswa').insert({
           'nisn': nisn,
+          'nama': nama,
           'role': 'siswa',
-          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else if (siswaResponse == null) {
+        // Jika auth ada tapi data siswa belum → buat
+        await supabase.from('siswa').insert({
+          'nisn': nisn,
+          'nama': nama,
+          'role': 'siswa',
         });
       }
 
-      // 3. Login pakai Anonymous + Simpan NISN sebagai UID
-      final authResult = await FirebaseAuth.instance.signInAnonymously();
-      final user = authResult.user!;
-
-      // Simpan NISN di Firestore (bukan di Auth UID)
-      await firestore.collection('auth_map').doc(user.uid).set({
-        'nisn': nisn,
-        'loginAt': FieldValue.serverTimestamp(),
-      });
-
-      // Simpan NISN di SharedPreferences (untuk query cepat)
-      // atau gunakan langsung dari Firestore
-
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Login berhasil!")));
-
-        // PINDAH KE HALAMAN BERIKUTNYA
+        _showSnackBar("Login berhasil!");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const DaftarKelasScreen()),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      _showSnackBar("Error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -192,7 +203,11 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(height: h * 0.03),
                         inputField("Nama", _namaController),
                         SizedBox(height: h * 0.025),
-                        inputField("NISN", _nisnController),
+                        inputField(
+                          "NISN",
+                          _nisnController,
+                          keyboardType: TextInputType.number,
+                        ),
                         SizedBox(height: h * 0.045),
                         _isLoading
                             ? const CircularProgressIndicator(
@@ -231,11 +246,16 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget inputField(String label, TextEditingController controller) {
+  Widget inputField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 35),
       child: TextField(
         controller: controller,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Color(0xFF1EAFFE)),
