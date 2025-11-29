@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ujiaja/screen/siswa/homescreen_siswa/daftarjurusan.dart';
 import 'dart:math';
+
+import 'package:ujiaja/screen/siswa/homescreen_siswa/homescreenSiswa.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -85,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
         _showSnackBar("Login berhasil!");
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const DaftarKelasScreen()),
+          MaterialPageRoute(builder: (_) => const HomePage()),
         );
       }
     } catch (e) {
