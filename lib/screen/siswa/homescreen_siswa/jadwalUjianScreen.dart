@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screenUjian.dart'; // ← halaman ujian
 
 class JadwalUjianScreen extends StatelessWidget {
@@ -13,19 +12,27 @@ class JadwalUjianScreen extends StatelessWidget {
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Jadwal Ujian Hari Ini')),
-      body: StreamBuilder(
+      appBar: AppBar(
+        title: const Text('Jadwal Ujian Hari Ini'),
+        backgroundColor: Colors.blue[900],
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: supabase
             .from('jadwal_ujian')
-            .stream(primaryKey: ['id'])
+            .select()
             .eq('kelas', kelas)
             .eq('tanggal', todayStr)
-            .order('jam_mulai'),
+            .order('jam_mulai')
+            .asStream(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
-          final jadwal = snapshot.data!;
+          }
 
+          final jadwal = snapshot.data!;
           if (jadwal.isEmpty) {
             return const Center(child: Text('Tidak ada ujian hari ini'));
           }
@@ -39,24 +46,44 @@ class JadwalUjianScreen extends StatelessWidget {
               final jamSelesai = item['jam_selesai'].substring(0, 5);
 
               return Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: ListTile(
-                  title: FutureBuilder(
+                  contentPadding: const EdgeInsets.all(16),
+                  title: FutureBuilder<Map<String, dynamic>?>(
                     future: supabase
                         .from('mata_pelajaran')
                         .select('nama')
                         .eq('id', item['mapel_id'])
                         .single(),
                     builder: (context, snap) {
-                      return Text(snap.data?['nama'] ?? 'Loading...');
+                      if (snap.hasData) {
+                        return Text(
+                          snap.data!['nama'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        );
+                      }
+                      return const Text('Loading...');
                     },
                   ),
-                  subtitle: Text('$jamMulai - $jamSelesai'),
-                  trailing: const Icon(Icons.arrow_forward_ios),
+                  subtitle: Text(
+                    '$jamMulai - $jamSelesai',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.blue,
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => UjianScreen(ujianId: item['id']),
+                        builder: (_) => UjianScreen(ujianId: item['ujian_id']),
                       ),
                     );
                   },

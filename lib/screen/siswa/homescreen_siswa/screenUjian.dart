@@ -1,12 +1,14 @@
+// lib/screen/siswa/screen_ujian.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'hasil_ujian_screen.dart'; // ← nanti
+import 'HasilujianScreen.dart';
+import 'dart:async'; // WAJIB!
 
 final supabase = Supabase.instance.client;
 
 class UjianScreen extends StatefulWidget {
   final String ujianId;
-  const UjianScreen({Key? key, required this.ujianId}) : super(key: key);
+  const UjianScreen({super.key, required this.ujianId}); // super.key
 
   @override
   State<UjianScreen> createState() => _UjianScreenState();
@@ -17,7 +19,7 @@ class _UjianScreenState extends State<UjianScreen> {
   int _secondsRemaining = 0;
   int _currentIndex = 0;
   List<Map<String, dynamic>> _soalList = [];
-  Map<String, String> _jawabanMap = {};
+  final Map<String, String> _jawabanMap = {}; // final
   Timer? _debounce;
   bool _isLoading = true;
 
@@ -28,7 +30,6 @@ class _UjianScreenState extends State<UjianScreen> {
   }
 
   Future<void> _loadUjian() async {
-    // 1. Ambil durasi ujian
     final ujian = await supabase
         .from('ujian')
         .select('durasi')
@@ -37,7 +38,6 @@ class _UjianScreenState extends State<UjianScreen> {
 
     _secondsRemaining = (ujian['durasi'] as int) * 60;
 
-    // 2. Ambil semua soal
     final soal = await supabase
         .from('soal')
         .select()
@@ -150,7 +150,6 @@ class _UjianScreenState extends State<UjianScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header: Timer + Nomor Soal
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -187,7 +186,6 @@ class _UjianScreenState extends State<UjianScreen> {
 
             const SizedBox(height: 20),
 
-            // Soal
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -212,7 +210,6 @@ class _UjianScreenState extends State<UjianScreen> {
 
                     const SizedBox(height: 30),
 
-                    // Pilihan Ganda
                     ...pilihan.map(
                       (p) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -243,7 +240,6 @@ class _UjianScreenState extends State<UjianScreen> {
 
                     const Spacer(),
 
-                    // Navigasi
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
