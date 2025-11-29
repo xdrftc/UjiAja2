@@ -72,7 +72,7 @@ class PanduanScreen extends StatelessWidget {
             // === ILUSTRASI SISWA ===
             Expanded(
               child: Image.asset(
-                'assets/images/panduan_illustration.png', // GANTI DENGAN GAMBAR ANDA
+                'assets/images/images4.png', // GANTI DENGAN GAMBAR ANDA
                 fit: BoxFit.contain,
                 width: double.infinity,
                 errorBuilder: (context, error, stackTrace) {

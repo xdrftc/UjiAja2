@@ -64,7 +64,7 @@ class WelcomePage extends StatelessWidget {
 
                     // SUBTEXT
                     Text(
-                      "Selamat datang di aplikasi ujian UJIAJA!!!",
+                      "Selamat datang di aplikasi UjiAja",
                       style: TextStyle(
                         fontSize: w * 0.035,
                         color: Colors.white,

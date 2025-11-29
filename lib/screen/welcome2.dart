@@ -62,7 +62,7 @@ class HomeUjiAjaPage extends StatelessWidget {
                 flex: 2, // memberi proporsi lebih besar dibanding elemen lain
                 child: Center(
                   child: Image.asset(
-                    "assets/images/4.png",
+                    "assets/images/images5.png",
                     width:
                         MediaQuery.of(context).size.width *
                         0.9, // 90% lebar layar
