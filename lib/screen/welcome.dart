@@ -121,7 +121,7 @@ class WelcomePage extends StatelessWidget {
                       scale:
                           1.3, // semakin besar angkanya → gambar semakin besar
                       child: Image.asset(
-                        "assets/welcome.png",
+                        "assets/images/welcome.png",
                         fit: BoxFit.contain,
                       ),
                     ),
