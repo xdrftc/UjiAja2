@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'jadwal_ujian_screen.dart'; // ← halaman baru
+import 'jadwalUJianScreen.dart'; // ← halaman baru
 
 final supabase = Supabase.instance.client;
 
