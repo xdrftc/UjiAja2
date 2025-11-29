@@ -1,25 +1,26 @@
 // lib/screen/siswa/screen_ujian.dart
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'HasilujianScreen.dart';
-import 'dart:async'; // WAJIB!
+import 'package:ujiaja/timeController.dart';
+import 'dart:async';
 
 final supabase = Supabase.instance.client;
 
 class UjianScreen extends StatefulWidget {
   final String ujianId;
-  const UjianScreen({super.key, required this.ujianId}); // super.key
+  const UjianScreen({super.key, required this.ujianId});
 
   @override
   State<UjianScreen> createState() => _UjianScreenState();
 }
 
 class _UjianScreenState extends State<UjianScreen> {
-  late Timer _timer;
-  int _secondsRemaining = 0;
+  late final TimerController _timerController;
   int _currentIndex = 0;
   List<Map<String, dynamic>> _soalList = [];
-  final Map<String, String> _jawabanMap = {}; // final
+  final Map<String, String> _jawabanMap = {};
   Timer? _debounce;
   bool _isLoading = true;
 
@@ -36,7 +37,16 @@ class _UjianScreenState extends State<UjianScreen> {
         .eq('id', widget.ujianId)
         .single();
 
-    _secondsRemaining = (ujian['durasi'] as int) * 60;
+    final durasiDetik = (ujian['durasi'] as int) * 60;
+
+    // INISIALISASI TIMER
+    _timerController = TimerController(durasiDetik);
+    _timerController.addListener(() {
+      if (_timerController.value == 0) {
+        _submitUjian();
+      }
+    });
+    _timerController.start();
 
     final soal = await supabase
         .from('soal')
@@ -47,22 +57,6 @@ class _UjianScreenState extends State<UjianScreen> {
     setState(() {
       _soalList = List<Map<String, dynamic>>.from(soal);
       _isLoading = false;
-    });
-
-    _startTimer();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-        } else {
-          _submitUjian();
-          timer.cancel();
-        }
-      });
     });
   }
 
@@ -113,7 +107,7 @@ class _UjianScreenState extends State<UjianScreen> {
       'total_soal': _soalList.length,
     }, onConflict: 'siswa_nisn,ujian_id');
 
-    _timer.cancel();
+    _timerController.stop();
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -130,7 +124,7 @@ class _UjianScreenState extends State<UjianScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timerController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -166,19 +160,25 @@ class _UjianScreenState extends State<UjianScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'TIMER: ${_formatTime(_secondsRemaining)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                  // TIMER PAKAI ValueListenableBuilder → HANYA UPDATE ANGKA!
+                  ValueListenableBuilder<int>(
+                    valueListenable: _timerController,
+                    builder: (context, seconds, _) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'TIMER: ${_formatTime(seconds)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
