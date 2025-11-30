@@ -1,7 +1,7 @@
 // lib/screen/auth/loginsiswa.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ujiaja/screen/siswa/homescreen_siswa/homescreenSiswa.dart';
+import 'package:ujiaja/screen/welcome2.dart'; // Ganti ke welcome2
 
 final supabase = Supabase.instance.client;
 
@@ -17,6 +17,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
   String? _selectedJurusan;
   String? _selectedKelas;
   bool _isLoading = false;
+  bool _isLoadingDropdown = false;
 
   List<Map<String, dynamic>> _jurusanList = [];
   List<Map<String, dynamic>> _kelasList = [];
@@ -28,30 +29,44 @@ class _LoginSiswaState extends State<LoginSiswa> {
   }
 
   Future<void> _loadJurusan() async {
+    setState(() => _isLoadingDropdown = true);
     try {
       final response = await supabase
           .from('jurusan')
           .select('id, nama')
           .order('nama');
-      setState(() => _jurusanList = List<Map<String, dynamic>>.from(response));
+
+      if (response.isEmpty) {
+        _showSnackBar("Tabel jurusan kosong!");
+      } else {
+        setState(() {
+          _jurusanList = List<Map<String, dynamic>>.from(response);
+        });
+      }
     } catch (e) {
-      _showSnackBar("Gagal memuat jurusan: $e");
+      _showSnackBar("Gagal load jurusan: $e");
+    } finally {
+      setState(() => _isLoadingDropdown = false);
     }
   }
 
   Future<void> _loadKelas(String jurusanId) async {
+    setState(() => _isLoadingDropdown = true);
     try {
       final response = await supabase
           .from('kelas')
           .select('id, nama')
           .eq('jurusan_id', jurusanId)
           .order('nama');
+
       setState(() {
         _kelasList = List<Map<String, dynamic>>.from(response);
         _selectedKelas = null;
       });
     } catch (e) {
-      _showSnackBar("Gagal memuat kelas: $e");
+      _showSnackBar("Gagal load kelas: $e");
+    } finally {
+      setState(() => _isLoadingDropdown = false);
     }
   }
 
@@ -78,7 +93,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
       final email = '$nisn@ujiaja.local';
       const password = 'ujiaja2025';
 
-      // 1. Cek siswa di tabel
+      // Cek siswa
       final siswa = await supabase
           .from('siswa')
           .select()
@@ -93,15 +108,14 @@ class _LoginSiswaState extends State<LoginSiswa> {
         }
       }
 
-      // 2. Login / Register otomatis
+      // Login / Register
       try {
         await supabase.auth.signInWithPassword(
           email: email,
           password: password,
         );
       } on AuthException catch (e) {
-        if (e.message.contains('Invalid login credentials') ||
-            e.message.contains('User not found')) {
+        if (e.message.contains('Invalid login credentials')) {
           await supabase.auth.signUp(email: email, password: password);
           await supabase.from('siswa').insert({
             'nisn': nisn,
@@ -110,17 +124,16 @@ class _LoginSiswaState extends State<LoginSiswa> {
             'jurusan': _selectedJurusan,
             'role': 'siswa',
           });
-          _showSnackBar("Akun baru dibuat otomatis!");
+          _showSnackBar("Akun baru dibuat!");
         } else {
           rethrow;
         }
       }
 
       if (mounted) {
-        _showSnackBar("Login berhasil!");
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
+          MaterialPageRoute(builder: (_) => const HomeUjiAjaPage()),
         );
       }
     } catch (e) {
@@ -149,7 +162,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
         children: [
           // GRADIENT ATAS
           Container(
-            height: MediaQuery.of(context).size.height * 0.4,
+            height: MediaQuery.of(context).size.height * 0.35,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -158,109 +171,114 @@ class _LoginSiswaState extends State<LoginSiswa> {
               ),
             ),
           ),
-          // GELOMBANG PUTIH
+          // FORM CARD
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.3,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(60)),
+            top: MediaQuery.of(context).size.height * 0.25,
+            left: 24,
+            right: 24,
+            child: Card(
+              elevation: 10,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Text(
+                      "Log in",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF126998),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField("Nama", _namaController),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      "Nisn",
+                      _nisnController,
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDropdown(
+                      "Jurusan",
+                      _selectedJurusan,
+                      _jurusanList.map((j) => j['nama'] as String).toList(),
+                      (val) {
+                        setState(() => _selectedJurusan = val);
+                        final jurusan = _jurusanList.firstWhere(
+                          (j) => j['nama'] == val,
+                        );
+                        _loadKelas(jurusan['id']);
+                      },
+                      hint: _isLoadingDropdown ? "Loading..." : "Pilih Jurusan",
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDropdown(
+                      "Kelas",
+                      _selectedKelas,
+                      _kelasList.map((k) => k['nama'] as String).toList(),
+                      (val) => setState(() => _selectedKelas = val),
+                      enabled: _kelasList.isNotEmpty,
+                      hint: _isLoadingDropdown ? "Loading..." : "Pilih Kelas",
+                    ),
+                    const SizedBox(height: 24),
+                    _isLoading
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFF126998),
+                          )
+                        : ElevatedButton(
+                            onPressed: _loginOrRegister,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF126998),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 60,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: const Text(
+                              "LOGIN",
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                  ],
+                ),
               ),
             ),
           ),
-          // KONTEN
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 60),
-                  Text(
-                    "UJIAJA",
-                    style: TextStyle(
-                      fontFamily: "LeckerliOne",
-                      fontSize: 48,
-                      color: Colors.white,
-                    ),
+          // LOGO
+          Positioned(
+            top: 80,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                Text(
+                  "UJIAJA",
+                  style: TextStyle(
+                    fontFamily: "LeckerliOne",
+                    fontSize: 48,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Silakan login menggunakan nama lengkap dan NIS.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                    textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Silakan login menggunakan nama lengkap dan NIS.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
                   ),
-                  const SizedBox(height: 60),
-                  Text(
-                    "Log in",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF126998),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  _buildTextField("Nama", _namaController),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    "Nisn",
-                    _nisnController,
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDropdown(
-                    "Jurusan",
-                    _selectedJurusan,
-                    _jurusanList.map((j) => j['nama'] as String).toList(),
-                    (val) {
-                      setState(() => _selectedJurusan = val);
-                      final jurusan = _jurusanList.firstWhere(
-                        (j) => j['nama'] == val,
-                      );
-                      _loadKelas(jurusan['id']);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDropdown(
-                    "Kelas",
-                    _selectedKelas,
-                    _kelasList.map((k) => k['nama'] as String).toList(),
-                    (val) => setState(() => _selectedKelas = val),
-                    enabled: _kelasList.isNotEmpty,
-                  ),
-                  const SizedBox(height: 32),
-                  _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Color(0xFF126998),
-                        )
-                      : ElevatedButton(
-                          onPressed: _loginOrRegister,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF126998),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 50,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                          child: const Text(
-                            "LOGIN",
-                            style: TextStyle(
-                              fontSize: 18,
-                              letterSpacing: 1,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                ],
-              ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],
@@ -303,9 +321,14 @@ class _LoginSiswaState extends State<LoginSiswa> {
     List<String> items,
     Function(String?) onChanged, {
     bool enabled = true,
+    String? hint,
   }) {
     return DropdownButtonFormField<String>(
       value: value,
+      hint: Text(
+        hint ?? "Pilih $label",
+        style: const TextStyle(color: Colors.grey),
+      ),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Color(0xFF1EAFFE)),
