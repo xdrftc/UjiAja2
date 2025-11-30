@@ -47,7 +47,7 @@ class HomeUjiAjaPage extends StatelessWidget {
                     const SizedBox(height: 5),
 
                     const Text(
-                      "Selamat datang di UJJ, fokus dan semangat!",
+                      "Selamat datang di UjiAja!",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: Colors.white70),
                     ),
@@ -88,7 +88,7 @@ class HomeUjiAjaPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
+                        builder: (context) => const LoginSiswa(),
                       ),
                     );
                   },
