@@ -14,7 +14,8 @@ class LoginSiswa extends StatefulWidget {
 class _LoginSiswaState extends State<LoginSiswa> {
   final _namaController = TextEditingController();
   final _nisnController = TextEditingController();
-  final _emailController = TextEditingController(); // BARU: EMAIL
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController(); // BARU: PASSWORD
   String? _selectedJurusan;
   String? _selectedKelas;
   bool _isLoading = false;
@@ -69,10 +70,12 @@ class _LoginSiswaState extends State<LoginSiswa> {
     final nama = _namaController.text.trim();
     final nisn = _nisnController.text.trim();
     final email = _emailController.text.trim();
+    final password = _passwordController.text.trim(); // AMBIL PASSWORD
 
     if (nama.isEmpty ||
         nisn.isEmpty ||
         email.isEmpty ||
+        password.isEmpty ||
         _selectedJurusan == null ||
         _selectedKelas == null) {
       _showSnackBar("Semua field harus diisi");
@@ -89,11 +92,14 @@ class _LoginSiswaState extends State<LoginSiswa> {
       return;
     }
 
+    if (password.length < 6) {
+      _showSnackBar("Password minimal 6 karakter");
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      const password = 'ujiaja2025';
-
       final existing = await supabase
           .from('siswa')
           .select()
@@ -156,7 +162,8 @@ class _LoginSiswaState extends State<LoginSiswa> {
   void dispose() {
     _namaController.dispose();
     _nisnController.dispose();
-    _emailController.dispose(); // TAMBAH!
+    _emailController.dispose();
+    _passwordController.dispose(); // TAMBAH!
     super.dispose();
   }
 
@@ -266,6 +273,13 @@ class _LoginSiswaState extends State<LoginSiswa> {
                         "Email",
                         _emailController,
                         keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        "Password",
+                        _passwordController,
+                        keyboardType: TextInputType.text,
+                        obscureText: true,
                       ), // BARU!
                       const SizedBox(height: 30),
 
@@ -309,10 +323,12 @@ class _LoginSiswaState extends State<LoginSiswa> {
     String label,
     TextEditingController controller, {
     TextInputType? keyboardType,
+    bool obscureText = false, // BARU: UNTUK PASSWORD
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      obscureText: obscureText, // Sembunyikan teks untuk password
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Color(0xFF1EAFFE)),
