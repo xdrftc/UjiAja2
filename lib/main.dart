@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ujiaja/screen/welcome.dart';
-import 'package:ujiaja/createSiswaAccount.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +13,6 @@ void main() async {
       authFlowType: AuthFlowType.pkce,
     ),
   );
-
-  await createSiswaAccounts();
 
   runApp(const MyApp());
 }
