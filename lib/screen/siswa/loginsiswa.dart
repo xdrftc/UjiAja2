@@ -14,6 +14,7 @@ class LoginSiswa extends StatefulWidget {
 class _LoginSiswaState extends State<LoginSiswa> {
   final _namaController = TextEditingController();
   final _nisnController = TextEditingController();
+  final _emailController = TextEditingController(); // BARU: EMAIL
   String? _selectedJurusan;
   String? _selectedKelas;
   bool _isLoading = false;
@@ -67,9 +68,11 @@ class _LoginSiswaState extends State<LoginSiswa> {
   Future<void> _loginOrRegister() async {
     final nama = _namaController.text.trim();
     final nisn = _nisnController.text.trim();
+    final email = _emailController.text.trim();
 
     if (nama.isEmpty ||
         nisn.isEmpty ||
+        email.isEmpty ||
         _selectedJurusan == null ||
         _selectedKelas == null) {
       _showSnackBar("Semua field harus diisi");
@@ -81,21 +84,30 @@ class _LoginSiswaState extends State<LoginSiswa> {
       return;
     }
 
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      _showSnackBar("Email tidak valid");
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final email = '$nisn@ujiaja.local';
       const password = 'ujiaja2025';
 
-      final siswa = await supabase
+      final existing = await supabase
           .from('siswa')
           .select()
           .eq('nisn', nisn)
           .maybeSingle();
-      if (siswa != null) {
-        final data = siswa as Map;
+
+      if (existing != null) {
+        final data = existing as Map;
         if (data['nama'].toString().toLowerCase() != nama.toLowerCase()) {
           _showSnackBar("Nama tidak sesuai dengan NISN");
+          return;
+        }
+        if (data['email'] != email) {
+          _showSnackBar("Email tidak sesuai dengan NISN");
           return;
         }
       }
@@ -105,17 +117,19 @@ class _LoginSiswaState extends State<LoginSiswa> {
           email: email,
           password: password,
         );
+        _showSnackBar("Login berhasil!");
       } on AuthException catch (e) {
         if (e.message.contains('Invalid login credentials')) {
           await supabase.auth.signUp(email: email, password: password);
           await supabase.from('siswa').insert({
             'nisn': nisn,
             'nama': nama,
+            'email': email,
             'kelas': _selectedKelas,
             'jurusan': _selectedJurusan,
             'role': 'siswa',
           });
-          _showSnackBar("Akun baru dibuat!");
+          _showSnackBar("Akun baru dibuat otomatis!");
         } else {
           rethrow;
         }
@@ -142,6 +156,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
   void dispose() {
     _namaController.dispose();
     _nisnController.dispose();
+    _emailController.dispose(); // TAMBAH!
     super.dispose();
   }
 
@@ -213,6 +228,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
                       _buildTextField("Nama", _namaController),
                       const SizedBox(height: 16),
                       _buildTextField(
@@ -245,7 +261,14 @@ class _LoginSiswaState extends State<LoginSiswa> {
                         enabled: _kelasList.isNotEmpty,
                         hint: _isLoadingDropdown ? "Memuat..." : "Pilih Kelas",
                       ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        "Email",
+                        _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                      ), // BARU!
                       const SizedBox(height: 30),
+
                       _isLoading
                           ? const CircularProgressIndicator(
                               color: Color(0xFF126998),
