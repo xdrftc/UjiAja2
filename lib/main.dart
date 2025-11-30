@@ -8,7 +8,8 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://hdqdhfixicfgpcpvtrbk.supabase.co',
-    anonKey: 'sb_secret_XsCpGfz1caxDpK12mnzQ0A_LkBxPfkz',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkcWRoZml4aWNmZ3BjcHZ0cmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyODIyODEsImV4cCI6MjA3OTg1ODI4MX0.L4VMXBr1sE6HjBk-jJvr6qGrEoKu22iQ9elElS9utjs',
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
     ),
