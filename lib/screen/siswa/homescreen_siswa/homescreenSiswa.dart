@@ -1,204 +1,370 @@
+// lib/screen/siswa/homescreen_siswa/homepage.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'jadwalUJianScreen.dart'; // ← halaman baru
+import 'package:ujiaja/screen/siswa/loginsiswa.dart';
 
 final supabase = Supabase.instance.client;
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
-
+  const HomePage({super.key});
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  String? siswaKelas;
-  String? siswaNama;
+  Map<String, dynamic>? _siswa;
+  List<Map<String, dynamic>> _ujianList = [];
+  List<Map<String, dynamic>> _nilaiList = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadSiswaData();
+    _loadData();
   }
 
-  Future<void> _loadSiswaData() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        _logout();
+        return;
+      }
 
-    final data = await supabase
-        .from('siswa')
-        .select('nama, kelas')
-        .eq('nisn', user.id)
-        .single();
+      final nisn = user.email?.split('@').first ?? '';
 
-    setState(() {
-      siswaNama = data['nama'];
-      siswaKelas = data['kelas'];
-    });
+      final siswaRes = await supabase
+          .from('siswa')
+          .select()
+          .eq('nisn', nisn)
+          .single();
+
+      final ujianRes = await supabase
+          .from('ujian')
+          .select('id, nama, mapel_id, durasi, mata_pelajaran!mapel_id(nama)')
+          .eq('kelas', siswaRes['kelas']);
+
+      final nilaiRes = await supabase
+          .from('hasil')
+          .select(
+            'ujian_id, nilai, benar, total_soal, created_at, ujian!ujian_id(nama)',
+          )
+          .eq('siswa_nisn', nisn)
+          .order('created_at', ascending: false);
+
+      setState(() {
+        _siswa = siswaRes;
+        _ujianList = List.from(ujianRes);
+        _nilaiList = List.from(nilaiRes);
+        _isLoading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _logout() {
+    supabase.auth.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginSiswa()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final width = size.width;
-    final double scale = width / 390;
-
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1FA2FF), Color(0xFF003A5B)],
+      backgroundColor: const Color(0xFF126998),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          "UJIAJA",
+          style: TextStyle(
+            fontFamily: "LeckerliOne",
+            fontSize: 32,
+            color: Colors.white,
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 20 * scale,
-              vertical: 25 * scale,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: 30 * scale),
-
-                // Judul UjiAja
-                Text(
-                  "UjiAja",
-                  style: TextStyle(
-                    fontFamily: 'LeckerliOne',
-                    fontSize: 60 * scale,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-
-                Container(
-                  margin: EdgeInsets.only(top: 6 * scale, bottom: 10 * scale),
-                  height: 1.5,
-                  width: 160 * scale,
-                  color: Colors.white54,
-                ),
-
-                // Selamat datang + nama siswa
-                Text(
-                  siswaNama != null
-                      ? "Halo $siswaNama,\nsemoga belajarmu menyenangkan!"
-                      : "Halo Teman,\nsemoga belajarmu menyenangkan!",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14 * scale,
-                    height: 1.9,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(height: 100 * scale),
-
-                // Tombol Menu
-                Expanded(
-                  child: ListView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      MenuCard(
-                        scale: scale,
-                        icon: Icons.menu_book,
-                        label: "Jadwal Ujian Hari Ini",
-                        onTap: () {
-                          if (siswaKelas != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    JadwalUjianScreen(kelas: siswaKelas!),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                      SizedBox(height: 15 * scale),
-                      MenuCard(
-                        scale: scale,
-                        icon: Icons.history,
-                        label: "Riwayat Nilai",
-                        onTap: () {
-                          // TODO: ke RiwayatScreen
-                        },
-                      ),
-                      SizedBox(height: 15 * scale),
-                      MenuCard(
-                        scale: scale,
-                        icon: Icons.error_outline,
-                        label: "Panduan",
-                        onTap: () {
-                          // TODO: ke PanduanScreen
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _logout,
           ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  // SELAMAT DATANG
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1EAFFE), Color(0xFF126998)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Halo Teman, semoga aktivitas belajarmu menyenangkan!",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        if (_siswa != null)
+                          Text(
+                            "${_siswa!['nama']} • ${_siswa!['kelas']}",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // MENU
+                  _menuCard(
+                    Icons.person_search,
+                    "Pengguna",
+                    "Lihat profil & data diri",
+                    _showProfil,
+                  ),
+                  const SizedBox(height: 16),
+                  _menuCard(
+                    Icons.quiz,
+                    "Soal Ulangan",
+                    "${_ujianList.length} ujian tersedia",
+                    _showUjian,
+                  ),
+                  const SizedBox(height: 16),
+                  _menuCard(
+                    Icons.bar_chart,
+                    "Nilai",
+                    "${_nilaiList.length} riwayat nilai",
+                    _showNilai,
+                  ),
+                  const SizedBox(height: 16),
+                  _menuCard(
+                    Icons.help,
+                    "Panduan",
+                    "Cara pakai UjiAja",
+                    _showPanduan,
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _menuCard(
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: const Color(0xFF126998),
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF126998),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Color(0xFF126998)),
+          ],
         ),
       ),
     );
   }
-}
 
-// MenuCard tetap sama
-class MenuCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final double scale;
-
-  const MenuCard({
-    Key? key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.scale,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15 * scale),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(15 * scale),
-        onTap: onTap,
-        child: Container(
-          height: 60 * scale,
-          padding: EdgeInsets.symmetric(horizontal: 10 * scale),
-          child: Row(
-            children: [
-              Container(
-                width: 50 * scale,
-                height: 50 * scale,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D47A1),
-                  borderRadius: BorderRadius.circular(12 * scale),
-                ),
-                child: Icon(icon, color: Colors.white, size: 28 * scale),
-              ),
-              SizedBox(width: 20 * scale),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 20 * scale,
-                  color: const Color(0xFF0D47A1),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+  void _showProfil() {
+    if (_siswa == null) return;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person, size: 60, color: Color(0xFF126998)),
+            const SizedBox(height: 16),
+            Text(
+              _siswa!['nama'] ?? '',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            Text("NISN: ${_siswa!['nisn'] ?? ''}"),
+            Text("Kelas: ${_siswa!['kelas'] ?? ''}"),
+            Text("Jurusan: ${_siswa!['jurusan'] ?? ''}"),
+            Text("Email: ${_siswa!['email'] ?? ''}"),
+          ],
         ),
+      ),
+    );
+  }
+
+  void _showUjian() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        builder: (_, controller) => Container(
+          padding: const EdgeInsets.all(24),
+          child: _ujianList.isEmpty
+              ? const Center(
+                  child: Text(
+                    "Belum ada ujian",
+                    style: TextStyle(fontSize: 18),
+                  ),
+                )
+              : ListView.builder(
+                  controller: controller,
+                  itemCount: _ujianList.length, // HANYA 1X
+                  itemBuilder: (_, i) {
+                    final u = _ujianList[i];
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.quiz,
+                          color: Color(0xFF126998),
+                        ),
+                        title: Text(u['nama'] ?? ''),
+                        subtitle: Text(
+                          "${u['mata_pelajaran']?['nama'] ?? 'Mapel'} • ${u['durasi']} menit",
+                        ),
+                        trailing: const Icon(Icons.play_arrow),
+                        onTap: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Mulai: ${u['nama']}")),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  void _showNilai() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        builder: (_, controller) => Container(
+          padding: const EdgeInsets.all(24),
+          child: _nilaiList.isEmpty
+              ? const Center(
+                  child: Text(
+                    "Belum ada nilai",
+                    style: TextStyle(fontSize: 18),
+                  ),
+                )
+              : ListView.builder(
+                  controller: controller,
+                  itemCount: _nilaiList.length, // HANYA 1X
+                  itemBuilder: (_, i) {
+                    final n = _nilaiList[i];
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: (n['nilai'] ?? 0) >= 75
+                              ? Colors.green
+                              : Colors.orange,
+                          child: Text(
+                            "${n['nilai'] ?? 0}",
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(n['ujian']?['nama'] ?? 'Ujian'),
+                        subtitle: Text(
+                          "${n['benar']}/${n['total_soal']} • ${n['created_at']?.toString().split('T').first ?? ''}",
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+  void _showPanduan() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Panduan UjiAja"),
+        content: const Text(
+          "1. Pilih 'Soal Ulangan' untuk mulai ujian\n"
+          "2. Kerjakan soal dengan teliti\n"
+          "3. Lihat nilai di menu 'Nilai'\n"
+          "4. Keluar dengan tombol logout di kanan atas",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
       ),
     );
   }

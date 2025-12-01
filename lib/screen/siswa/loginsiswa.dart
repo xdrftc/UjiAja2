@@ -70,7 +70,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
     final nama = _namaController.text.trim();
     final nisn = _nisnController.text.trim();
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim(); // AMBIL PASSWORD
+    final password = _passwordController.text.trim();
 
     if (nama.isEmpty ||
         nisn.isEmpty ||
