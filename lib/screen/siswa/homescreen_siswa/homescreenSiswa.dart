@@ -24,6 +24,11 @@ class _HomePageState extends State<HomePage> {
     _loadData();
   }
 
+  // TAMBAHKAN FUNGSI INI!
+  void _showSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
@@ -37,8 +42,8 @@ class _HomePageState extends State<HomePage> {
       final siswaRes = await supabase
           .from('siswa')
           .select()
-          .eq('email', user.email!) // PAKAI EMAIL!
-          .maybeSingle(); // PAKAI maybeSingle()
+          .eq('email', user.email!)
+          .maybeSingle(); // AMAN JIKA TIDAK ADA
 
       if (siswaRes == null) {
         _showSnackBar("Data siswa tidak ditemukan");
@@ -46,6 +51,7 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
+      // ignore: unnecessary_cast
       final siswa = siswaRes as Map<String, dynamic>;
       final nisn = siswa['nisn'];
 
@@ -69,7 +75,7 @@ class _HomePageState extends State<HomePage> {
         _isLoading = false;
       });
     } catch (e) {
-      _showSnackBar("Error: $e");
+      _showSnackBar("Error: $e"); // SEKARANG ADA!
       setState(() => _isLoading = false);
     }
   }
@@ -260,7 +266,7 @@ class _HomePageState extends State<HomePage> {
                 )
               : ListView.builder(
                   controller: controller,
-                  itemCount: _ujianList.length, // HANYA 1X
+                  itemCount: _ujianList.length,
                   itemBuilder: (_, i) {
                     final u = _ujianList[i];
                     return Card(
@@ -276,9 +282,7 @@ class _HomePageState extends State<HomePage> {
                         trailing: const Icon(Icons.play_arrow),
                         onTap: () {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Mulai: ${u['nama']}")),
-                          );
+                          _showSnackBar("Mulai: ${u['nama']}");
                         },
                       ),
                     );
@@ -309,7 +313,7 @@ class _HomePageState extends State<HomePage> {
                 )
               : ListView.builder(
                   controller: controller,
-                  itemCount: _nilaiList.length, // HANYA 1X
+                  itemCount: _nilaiList.length,
                   itemBuilder: (_, i) {
                     final n = _nilaiList[i];
                     return Card(
