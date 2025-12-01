@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ujiaja/provider/authProvider.dart';
 
-class ProfileScreen extends ConsumerStatefulWidget {
+class ProfileGuru extends ConsumerStatefulWidget {
   @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileGuru> createState() => _ProfileGuruScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _ProfileGuruScreenState extends ConsumerState<ProfileGuru> {
   final _namaController = TextEditingController();
   final _nipController = TextEditingController();
   final _emailController = TextEditingController();
