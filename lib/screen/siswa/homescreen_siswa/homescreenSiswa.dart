@@ -238,11 +238,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showProfil() {
-    if (_siswa == null) return;
+    if (_siswa == null) {
+      _showSnackBar("Data profil tidak tersedia");
+      return;
+    }
 
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PenggunaSiswaPage(siswa: _siswa!)),
+      MaterialPageRoute(
+        builder: (_) => PenggunaSiswaPage(siswa: _siswa!), // PASS DATA!
+      ),
     );
   }
 

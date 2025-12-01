@@ -1,186 +1,110 @@
-// lib/screen/siswa/pengguna/pengguna_page.dart
+// lib/screen/siswa/pengguna_siswa.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-final supabase = Supabase.instance.client;
+class PenggunaSiswaPage extends StatelessWidget {
+  final Map<String, dynamic> siswa;
 
-class PenggunaSiswaPage extends StatefulWidget {
-  const PenggunaSiswaPage({super.key, required Map<String, dynamic> siswa});
-  @override
-  State<PenggunaSiswaPage> createState() => _PenggunaSiswaPageState();
-}
-
-class _PenggunaSiswaPageState extends State<PenggunaSiswaPage> {
-  Map<String, dynamic>? _siswa;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfil();
-  }
-
-  Future<void> _loadProfil() async {
-    setState(() => _isLoading = true);
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        Navigator.pop(context);
-        return;
-      }
-
-      final nisn = user.email?.split('@').first ?? '';
-      final res = await supabase
-          .from('siswa')
-          .select()
-          .eq('nisn', nisn)
-          .single();
-
-      setState(() {
-        _siswa = res;
-        _isLoading = false;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal memuat profil: $e")));
-      setState(() => _isLoading = false);
-    }
-  }
+  const PenggunaSiswaPage({super.key, required this.siswa});
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: const Color(0xFF1EAFFE),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : Stack(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF126998),
+        elevation: 0,
+        title: const Text(
+          "Profil Pengguna",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Column(
+        children: [
+          // HEADER BIRU MELENGKUNG
+          Container(
+            width: double.infinity,
+            height: 120,
+            decoration: const BoxDecoration(
+              color: Color(0xFF126998),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // BACKGROUND BIRU
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFF1EAFFE), Color(0xFF126998)],
-                    ),
-                  ),
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, size: 50, color: Color(0xFF126998)),
                 ),
-
-                // KARTU PROFIL
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    height: size.height * 0.7,
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(40),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        children: [
-                          // FOTO PROFIL
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF126998),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 70,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // JUDUL
-                          const Text(
-                            "Pengguna",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF126998),
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // DATA
-                          _buildInfoField("Nama", _siswa?['nama'] ?? '-'),
-                          const SizedBox(height: 16),
-                          _buildInfoField("Nisn", _siswa?['nisn'] ?? '-'),
-                          const SizedBox(height: 16),
-                          _buildInfoField("Kelas", _siswa?['kelas'] ?? '-'),
-                          const SizedBox(height: 16),
-                          _buildInfoField("Jurusan", _siswa?['jurusan'] ?? '-'),
-                          const SizedBox(height: 16),
-                          _buildInfoField("Email", _siswa?['email'] ?? '-'),
-                          const SizedBox(height: 40),
-
-                          // TOMBOL KEMBALI
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF126998),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 60,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: const Text(
-                              "Kembali",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                SizedBox(height: 8),
+                Text(
+                  "Pengguna",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 30),
+
+          // FORM PROFIL (READ ONLY)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                _buildInfoField("Nama", siswa['nama'] ?? '-'),
+                const SizedBox(height: 16),
+                _buildInfoField("Nisn", siswa['nisn'] ?? '-'),
+                const SizedBox(height: 16),
+                _buildInfoField("Kelas", siswa['kelas'] ?? '-'),
+                const SizedBox(height: 16),
+                _buildInfoField("Jurusan", siswa['jurusan'] ?? '-'),
+                const SizedBox(height: 16),
+                _buildInfoField("Email", siswa['email'] ?? '-'),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildInfoField(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: const Color(0xFF1EAFFE), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF1EAFFE),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16, color: Color(0xFF126998)),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-              textAlign: TextAlign.end,
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
             ),
           ),
         ],
