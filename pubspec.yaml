@@ -32,6 +32,11 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   firebase_storage: ^12.3.2
+  flutter_riverpod: ^2.5.1  # State management
+  go_router: ^14.0.1  # Routing
+  flutter_svg: ^2.0.10  # Untuk logo jurusan (jika SVG)
+  shared_preferences: ^2.3.0  # Simpan token lokal
+
   flutter:
     sdk: flutter
 

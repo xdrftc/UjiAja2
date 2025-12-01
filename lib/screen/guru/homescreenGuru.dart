@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class HomeUjhaja extends StatelessWidget {
-  const HomeUjhaja({super.key});
+class HomescreenGuru extends StatelessWidget {
+  const HomescreenGuru({super.key});
 
   @override
   Widget build(BuildContext context) {

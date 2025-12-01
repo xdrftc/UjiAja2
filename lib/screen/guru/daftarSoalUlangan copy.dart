@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class DaftarKelasScreen extends StatelessWidget {
-  const DaftarKelasScreen({Key? key}) : super(key: key);
+class DaftarSoalScreen extends StatelessWidget {
+  const DaftarSoalScreen({Key? key}) : super(key: key);
 
   // Daftar kelas beserta warna & path ikon (ganti dengan asset Anda nanti)
   final List<Map<String, dynamic>> kelasList = const [
@@ -12,7 +12,7 @@ class DaftarKelasScreen extends StatelessWidget {
     {'nama': 'TKRO', 'color': Colors.indigo, 'icon': 'assets/icons/tkro.png'},
     {'nama': 'TKJ', 'color': Colors.green, 'icon': 'assets/icons/tkj.png'},
     {'nama': 'RPL', 'color': Colors.teal, 'icon': 'assets/icons/rpl.png'},
-    {'nama': 'DPB', 'color': Colors.yellow, 'icon': 'assets/icons/dpb.png'},
+    {'nama': 'DPB', 'color': Colors.yellow, 'icon': 'assets/icons/dpib.png'},
     {'nama': 'SK', 'color': Colors.purple, 'icon': 'assets/icons/sk.png'},
   ];
 
@@ -38,7 +38,7 @@ class DaftarKelasScreen extends StatelessWidget {
                     ),
                   ),
                   child: Image.asset(
-                    'assets/images/header_illustration.png', // ganti dengan ilustrasi Anda
+                    'assets/images/images2.png', // ganti dengan ilustrasi Anda
                     fit: BoxFit.cover,
                   ),
                 ),
