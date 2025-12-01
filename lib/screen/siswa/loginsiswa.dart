@@ -12,6 +12,8 @@ class LoginSiswa extends StatefulWidget {
 }
 
 class _LoginSiswaState extends State<LoginSiswa> {
+  final GlobalKey<ScaffoldMessengerState> _scaffoldKey =
+      GlobalKey<ScaffoldMessengerState>();
   final _namaController = TextEditingController();
   final _nisnController = TextEditingController();
   final _emailController = TextEditingController();
@@ -158,23 +160,22 @@ class _LoginSiswaState extends State<LoginSiswa> {
   }
 
   void _showSnackBar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  @override
-  void dispose() {
-    _namaController.dispose();
-    _nisnController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+    _scaffoldKey.currentState?.hideCurrentSnackBar();
+    _scaffoldKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: msg.contains('berhasil') || msg.contains('dibuat')
+            ? Colors.green
+            : Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
+      key: _scaffoldKey, // TAMBAH INI
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
@@ -182,7 +183,12 @@ class _LoginSiswaState extends State<LoginSiswa> {
             // HEADER BIRU
             Container(
               width: double.infinity,
-              padding: EdgeInsets.fromLTRB(24, size.height * 0.08, 24, 40),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                MediaQuery.of(context).size.height * 0.08,
+                24,
+                40,
+              ),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,

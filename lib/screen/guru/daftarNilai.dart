@@ -1,26 +1,20 @@
-// lib/screen/guru/daftar_nilai_screen.dart
+// lib/screen/guru/daftarNilai.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class DaftarNilaiScreen extends ConsumerStatefulWidget {
+class DaftarNilai extends StatefulWidget {
   final String kelas;
   final String jurusanId;
 
-  const DaftarNilaiScreen({
-    super.key,
-    required this.kelas,
-    required this.jurusanId,
-  });
+  const DaftarNilai({super.key, required this.kelas, required this.jurusanId});
 
   @override
-  ConsumerState<DaftarNilaiScreen> createState() => _DaftarNilaiScreenState();
+  State<DaftarNilai> createState() => _DaftarNilaiState();
 }
 
-class _DaftarNilaiScreenState extends ConsumerState<DaftarNilaiScreen> {
-  List<Map<String, dynamic>> hasilUlangan = [];
-  bool isLoading = true;
+class _DaftarNilaiState extends State<DaftarNilai> {
+  List<Map<String, dynamic>> hasil = [];
+  bool loading = true;
 
   @override
   void initState() {
@@ -30,229 +24,78 @@ class _DaftarNilaiScreenState extends ConsumerState<DaftarNilaiScreen> {
 
   Future<void> _loadNilai() async {
     try {
-      final response = await Supabase.instance.client
+      final res = await Supabase.instance.client
           .from('hasil')
           .select('''
-            id,
-            nilai,
-            benar,
-            total_soal,
-            tanggal,
-            siswa:siswa_nisn (nama, nisn)
+            nilai, benar, total_soal,
+            siswa:siswa_nisn(nama, nisn)
           ''')
           .eq('kelas', widget.kelas)
           .order('nilai', ascending: false);
 
-      setState(() {
-        hasilUlangan = List<Map<String, dynamic>>.from(response);
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() => isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal memuat nilai siswa')),
-        );
+        setState(() {
+          hasil = List<Map<String, dynamic>>.from(res);
+          loading = false;
+        });
       }
+    } catch (e) {
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  // Fungsi untuk warna berdasarkan nilai
-  Color _getNilaiColor(double nilai) {
-    if (nilai >= 85) return Colors.green;
-    if (nilai >= 70) return Colors.orange;
+  Color _warnaNilai(double n) {
+    if (n >= 85) return Colors.green;
+    if (n >= 70) return Colors.orange;
     return Colors.red;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Hasil Ulangan',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
-        ),
+        title: Text('Nilai ${widget.kelas}'),
       ),
-      body: Column(
-        children: [
-          // Header biru (Frame 19)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF172554)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  widget.kelas,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Daftar nilai seluruh siswa',
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : hasil.isEmpty
+          ? const Center(child: Text('Belum ada hasil ulangan'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: hasil.length,
+              itemBuilder: (context, i) {
+                final h = hasil[i];
+                final siswa = h['siswa'] as Map<String, dynamic>;
+                final nilai = (h['nilai'] as num).toDouble();
 
-          // Info jumlah siswa & rata-rata
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _infoCard('Jumlah Siswa', '${hasilUlangan.length}'),
-                _infoCard('Rata-rata Kelas', '82.5'),
-              ],
-            ),
-          ),
-
-          // List nilai siswa
-          Expanded(
-            child: isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF1E3A8A)),
-                  )
-                : hasilUlangan.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.assignment_late_outlined,
-                          size: 80,
-                          color: Colors.grey,
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _warnaNilai(nilai).withOpacity(0.2),
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          color: _warnaNilai(nilai),
+                          fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(height: 16),
-                        Text(
-                          'Belum ada hasil ulangan',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                      ],
+                      ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    itemCount: hasilUlangan.length,
-                    itemBuilder: (context, index) {
-                      final h = hasilUlangan[index];
-                      final siswa = h['siswa'] as Map<String, dynamic>;
-                      final nilai = (h['nilai'] as num).toDouble();
-                      final color = _getNilaiColor(nilai);
-
-                      return Card(
-                        elevation: 5,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          leading: CircleAvatar(
-                            radius: 28,
-                            backgroundColor: color.withOpacity(0.2),
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: color,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            siswa['nama'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 17,
-                            ),
-                          ),
-                          subtitle: Text('NISN: ${siswa['nisn']}'),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                nilai.toStringAsFixed(1),
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: color, // SUDAH DIPERBAIKI DI SINI
-                                ),
-                              ),
-                              Text(
-                                '${h['benar']}/${h['total_soal']} benar',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Detail ${siswa['nama']}'),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
+                    title: Text(siswa['nama']),
+                    subtitle: Text('NISN: ${siswa['nisn']}'),
+                    trailing: Text(
+                      nilai.toStringAsFixed(1),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: _warnaNilai(nilai),
+                      ),
+                    ),
                   ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoCard(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+                );
+              },
+            ),
     );
   }
 }

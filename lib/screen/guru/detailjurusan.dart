@@ -1,78 +1,95 @@
-// lib/screens/pilih_kelas_screen.dart
+// lib/screen/guru/detailjurusan.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'daftarNilai.dart';
 
-class PilihKelasScreen extends ConsumerStatefulWidget {
+class DetailJurusan extends StatefulWidget {
   final String jurusanId;
-  final String mode;
-  const PilihKelasScreen({
+  final String mode; // sekarang BOLEH DIISI atau default 'hasil'
+
+  const DetailJurusan({
     super.key,
     required this.jurusanId,
-    required this.mode,
+    this.mode = 'hasil', // DEFAULT → tidak wajib diisi lagi
   });
 
   @override
-  ConsumerState<PilihKelasScreen> createState() => _PilihKelasScreenState();
+  State<DetailJurusan> createState() => _DetailJurusanState();
 }
 
-class _PilihKelasScreenState extends ConsumerState<PilihKelasScreen> {
-  List<Map<String, dynamic>> kelas = [];
+class _DetailJurusanState extends State<DetailJurusan> {
+  List<Map<String, dynamic>> kelasList = [];
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    Supabase.instance.client
-        .from('kelas')
-        .select('id, nama')
-        .eq('jurusan_id', widget.jurusanId)
-        .order('nama')
-        .then((data) {
-          setState(() {
-            kelas = List<Map<String, dynamic>>.from(data);
-            loading = false;
-          });
+    _loadKelas();
+  }
+
+  Future<void> _loadKelas() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('kelas')
+          .select('id, nama')
+          .eq('jurusan_id', widget.jurusanId)
+          .order('nama');
+
+      if (mounted) {
+        setState(() {
+          kelasList = List<Map<String, dynamic>>.from(res);
+          loading = false;
         });
+      }
+    } catch (e) {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.mode == 'soal'
-              ? 'Pilih Kelas untuk Soal'
-              : 'Pilih Kelas untuk Hasil',
-        ),
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
+        title: const Text('Pilih Kelas'),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
+          : kelasList.isEmpty
+          ? const Center(child: Text('Belum ada kelas'))
           : ListView.builder(
-              itemCount: kelas.length,
-              itemBuilder: (_, i) {
-                final k = kelas[i];
-                return ListTile(
-                  leading: const Icon(Icons.class_, color: Colors.blue),
-                  title: Text(
-                    k['nama'],
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+              padding: const EdgeInsets.all(16),
+              itemCount: kelasList.length,
+              itemBuilder: (context, i) {
+                final kelas = kelasList[i];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFF1E3A8A),
+                      child: Text(
+                        kelas['nama'][0],
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    title: Text(
+                      kelas['nama'],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DaftarNilai(
+                            kelas: kelas['nama'],
+                            jurusanId: widget.jurusanId,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  trailing: const Icon(Icons.arrow_forward_ios),
-                  onTap: () {
-                    if (widget.mode == 'soal') {
-                      context.go(
-                        '/buat-soal?kelas=${k['nama']}&jurusanId=${widget.jurusanId}',
-                      );
-                    } else {
-                      context.go(
-                        '/daftar-nilai?kelas=${k['nama']}&jurusanId=${widget.jurusanId}',
-                      );
-                    }
-                  },
                 );
               },
             ),

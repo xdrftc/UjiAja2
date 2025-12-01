@@ -1,5 +1,6 @@
 // lib/screen/welcome/welcome2.dart
 import 'package:flutter/material.dart';
+import 'package:ujiaja/screen/guru/loginGuru.dart';
 import 'package:ujiaja/screen/siswa/loginsiswa.dart';
 
 class HomeUjiAjaPage extends StatelessWidget {
@@ -120,7 +121,12 @@ class HomeUjiAjaPage extends StatelessWidget {
                               ),
                             ),
                             onPressed: () {
-                              // TODO: Navigasi ke halaman guru
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const LoginGuru(),
+                                ),
+                              );
                             },
                             child: const Text(
                               "GURU",
