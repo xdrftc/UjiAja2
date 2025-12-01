@@ -1,7 +1,7 @@
 // lib/screen/auth/loginsiswa.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ujiaja/screen/siswa/homescreen_siswa/homescreenSiswa.dart'; // sesuaikan path
+import 'package:ujiaja/screen/siswa/homescreen_siswa/homescreenSiswa.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -73,7 +73,6 @@ class _LoginSiswaState extends State<LoginSiswa> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validasi
     if (nama.isEmpty ||
         nisn.isEmpty ||
         email.isEmpty ||
@@ -83,14 +82,17 @@ class _LoginSiswaState extends State<LoginSiswa> {
       _showSnackBar("Semua field harus diisi");
       return;
     }
+
     if (!RegExp(r'^\d{10}$').hasMatch(nisn)) {
       _showSnackBar("NISN harus 10 digit angka");
       return;
     }
+
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
       _showSnackBar("Email tidak valid");
       return;
     }
+
     if (password.length < 6) {
       _showSnackBar("Password minimal 6 karakter");
       return;
@@ -98,20 +100,39 @@ class _LoginSiswaState extends State<LoginSiswa> {
 
     setState(() => _isLoading = true);
     try {
-      // Coba login
+      // Cek siswa
+      final existing = await supabase
+          .from('siswa')
+          .select()
+          .eq('nisn', nisn)
+          .maybeSingle();
+
+      if (existing != null) {
+        final data = existing as Map;
+        if (data['nama'].toString().toLowerCase() != nama.toLowerCase()) {
+          _showSnackBar("Nama tidak sesuai dengan NISN");
+          return;
+        }
+        if (data['email'] != email) {
+          _showSnackBar("Email tidak sesuai dengan NISN");
+          return;
+        }
+      }
+
+      // Login / Register
       try {
         await supabase.auth.signInWithPassword(
-          email: email, // NISN
+          email: email,
           password: password,
         );
         _showSnackBar("Login berhasil!");
       } on AuthException catch (e) {
         if (e.message.contains('Invalid login credentials')) {
-          // Daftar baru
           await supabase.auth.signUp(
-            email: email, // NISN jadi email
+            email: email,
             password: password,
             data: {
+              'nisn': nisn,
               'nama': nama,
               'kelas': _selectedKelas,
               'jurusan': _selectedJurusan,
@@ -158,7 +179,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // HEADER
+            // HEADER BIRU
             Container(
               width: double.infinity,
               padding: EdgeInsets.fromLTRB(24, size.height * 0.08, 24, 40),
@@ -193,7 +214,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
             ),
             const SizedBox(height: 30),
 
-            // FORM
+            // FORM CARD
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Card(

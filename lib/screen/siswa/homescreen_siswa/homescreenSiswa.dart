@@ -33,18 +33,26 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      final nisn = user.email?.split('@').first ?? '';
-
+      // GUNAKAN EMAIL DARI AUTH → CARI SISWA
       final siswaRes = await supabase
           .from('siswa')
           .select()
-          .eq('nisn', nisn)
-          .single();
+          .eq('email', user.email!) // PAKAI EMAIL!
+          .maybeSingle(); // PAKAI maybeSingle()
+
+      if (siswaRes == null) {
+        _showSnackBar("Data siswa tidak ditemukan");
+        _logout();
+        return;
+      }
+
+      final siswa = siswaRes as Map<String, dynamic>;
+      final nisn = siswa['nisn'];
 
       final ujianRes = await supabase
           .from('ujian')
           .select('id, nama, mapel_id, durasi, mata_pelajaran!mapel_id(nama)')
-          .eq('kelas', siswaRes['kelas']);
+          .eq('kelas', siswa['kelas']);
 
       final nilaiRes = await supabase
           .from('hasil')
@@ -55,15 +63,13 @@ class _HomePageState extends State<HomePage> {
           .order('created_at', ascending: false);
 
       setState(() {
-        _siswa = siswaRes;
+        _siswa = siswa;
         _ujianList = List.from(ujianRes);
         _nilaiList = List.from(nilaiRes);
         _isLoading = false;
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      _showSnackBar("Error: $e");
       setState(() => _isLoading = false);
     }
   }
