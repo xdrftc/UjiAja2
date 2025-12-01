@@ -4,13 +4,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabase = Supabase.instance.client;
 
-class PenggunaPage extends StatefulWidget {
-  const PenggunaPage({super.key});
+class PenggunaSiswaPage extends StatefulWidget {
+  const PenggunaSiswaPage({super.key, required Map<String, dynamic> siswa});
   @override
-  State<PenggunaPage> createState() => _PenggunaPageState();
+  State<PenggunaSiswaPage> createState() => _PenggunaSiswaPageState();
 }
 
-class _PenggunaPageState extends State<PenggunaPage> {
+class _PenggunaSiswaPageState extends State<PenggunaSiswaPage> {
   Map<String, dynamic>? _siswa;
   bool _isLoading = true;
 

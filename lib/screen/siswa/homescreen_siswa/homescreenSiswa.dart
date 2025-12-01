@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ujiaja/screen/siswa/loginsiswa.dart';
+import 'pengguna_siswa.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -226,29 +227,10 @@ class _HomePageState extends State<HomePage> {
 
   void _showProfil() {
     if (_siswa == null) return;
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.person, size: 60, color: Color(0xFF126998)),
-            const SizedBox(height: 16),
-            Text(
-              _siswa!['nama'] ?? '',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            Text("NISN: ${_siswa!['nisn'] ?? ''}"),
-            Text("Kelas: ${_siswa!['kelas'] ?? ''}"),
-            Text("Jurusan: ${_siswa!['jurusan'] ?? ''}"),
-            Text("Email: ${_siswa!['email'] ?? ''}"),
-          ],
-        ),
-      ),
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PenggunaSiswaPage(siswa: _siswa!)),
     );
   }
 
