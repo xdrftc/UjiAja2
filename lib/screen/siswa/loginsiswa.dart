@@ -12,8 +12,7 @@ class LoginSiswa extends StatefulWidget {
 }
 
 class _LoginSiswaState extends State<LoginSiswa> {
-  final GlobalKey<ScaffoldMessengerState> _scaffoldKey =
-      GlobalKey<ScaffoldMessengerState>();
+  final _scaffoldKey = GlobalKey<ScaffoldMessengerState>();
   final _namaController = TextEditingController();
   final _nisnController = TextEditingController();
   final _emailController = TextEditingController();
@@ -36,12 +35,12 @@ class _LoginSiswaState extends State<LoginSiswa> {
   Future<void> _loadJurusan() async {
     setState(() => _isLoadingDropdown = true);
     try {
-      final response = await supabase
+      final res = await supabase
           .from('jurusan')
           .select('id, nama')
           .order('nama');
       setState(() {
-        _jurusanList = List<Map<String, dynamic>>.from(response);
+        _jurusanList = List<Map<String, dynamic>>.from(res);
         _isLoadingDropdown = false;
       });
     } catch (e) {
@@ -53,13 +52,13 @@ class _LoginSiswaState extends State<LoginSiswa> {
   Future<void> _loadKelas(String jurusanId) async {
     setState(() => _isLoadingDropdown = true);
     try {
-      final response = await supabase
+      final res = await supabase
           .from('kelas')
           .select('id, nama')
           .eq('jurusan_id', jurusanId)
           .order('nama');
       setState(() {
-        _kelasList = List<Map<String, dynamic>>.from(response);
+        _kelasList = List<Map<String, dynamic>>.from(res);
         _selectedKelas = null;
         _isLoadingDropdown = false;
       });
@@ -69,91 +68,133 @@ class _LoginSiswaState extends State<LoginSiswa> {
     }
   }
 
+  // ========== FUNGSI UTAMA: LOGIN OR REGISTER ==========
   Future<void> _loginOrRegister() async {
     final nama = _namaController.text.trim();
     final nisn = _nisnController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
+    // VALIDASI
     if (nama.isEmpty ||
         nisn.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
         _selectedJurusan == null ||
         _selectedKelas == null) {
-      _showSnackBar("Semua field harus diisi");
+      _showSnackBar("Semua field harus diisi!");
       return;
     }
-
     if (!RegExp(r'^\d{10}$').hasMatch(nisn)) {
-      _showSnackBar("NISN harus 10 digit angka");
+      _showSnackBar("NISN harus 10 digit angka!");
       return;
     }
-
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-      _showSnackBar("Email tidak valid");
+      _showSnackBar("Email tidak valid!");
       return;
     }
-
     if (password.length < 6) {
-      _showSnackBar("Password minimal 6 karakter");
+      _showSnackBar("Password minimal 6 karakter!");
       return;
     }
 
     setState(() => _isLoading = true);
+
     try {
-      // Cek siswa
-      final existing = await supabase
+      print("1. Cek NISN: $nisn di tabel siswa");
+      final siswaRes = await supabase
           .from('siswa')
-          .select()
+          .select('nama, email')
           .eq('nisn', nisn)
           .maybeSingle();
 
-      if (existing != null) {
-        final data = existing as Map;
-        if (data['nama'].toString().toLowerCase() != nama.toLowerCase()) {
-          _showSnackBar("Nama tidak sesuai dengan NISN");
+      if (siswaRes != null) {
+        // NISN ADA → HARUS LOGIN
+        final data = siswaRes as Map<String, dynamic>;
+        if (data['nama'].toString().toLowerCase() != nama.toLowerCase() ||
+            data['email'] != email) {
+          _showSnackBar("Data NISN tidak cocok!");
           return;
         }
-        if (data['email'] != email) {
-          _showSnackBar("Email tidak sesuai dengan NISN");
-          return;
-        }
-      }
 
-      // Login / Register
-      try {
-        await supabase.auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
-        _showSnackBar("Login berhasil!");
-      } on AuthException catch (e) {
-        if (e.message.contains('Invalid login credentials')) {
-          await supabase.auth.signUp(
+        try {
+          await supabase.auth.signInWithPassword(
             email: email,
             password: password,
-            data: {
-              'nisn': nisn,
-              'nama': nama,
-              'kelas': _selectedKelas,
-              'jurusan': _selectedJurusan,
-            },
           );
-          _showSnackBar("Akun baru dibuat!");
-        } else {
-          rethrow;
+          _showSnackBar("Login berhasil!");
+        } on AuthException catch (e) {
+          _showSnackBar("Password salah!");
+          return;
+        }
+      } else {
+        // NISN BELUM ADA → CEK EMAIL SUDAH TERDAFTAR?
+        print("2. Cek email: $email");
+        try {
+          await supabase.auth.signInWithPassword(
+            email: email,
+            password: "dummy",
+          );
+          _showSnackBar("Email sudah terdaftar! Gunakan email lain.");
+          return;
+        } on AuthException catch (e) {
+          if (e.message.contains('Invalid login credentials')) {
+            // EMAIL BELUM ADA → BUAT AKUN + INSERT SISWA
+            print("   → Buat akun baru + insert siswa");
+
+            // 1. SIGNUP
+            final signUpResp = await supabase.auth.signUp(
+              email: email,
+              password: password,
+            );
+
+            if (signUpResp.user == null) {
+              _showSnackBar("Gagal buat akun!");
+              return;
+            }
+
+            // 2. INSERT LANGSUNG KE TABEL SISWA
+            // DAPATKAN ID JURUSAN (uuid) DARI NAMA YANG DIPILIH
+            final jurusanData = _jurusanList.firstWhere(
+              (j) => j['nama'] == _selectedJurusan,
+              orElse: () => throw "Jurusan tidak ditemukan!",
+            );
+            final String jurusanId = jurusanData['id'] as String;
+
+            // INSERT KE TABEL SISWA — jurusan PAKAI ID (uuid)!
+            await supabase
+                .from('siswa')
+                .insert({
+                  'nisn': nisn,
+                  'nama': nama,
+                  'email': email,
+                  'kelas': _selectedKelas, // ini string, tetap
+                  'jurusan': jurusanId, // ← INI YANG BENAR: uuid, bukan nama!
+                  'role': 'siswa',
+                })
+                .onError((error, stackTrace) {
+                  debugPrint("GAGAL INSERT SISWA: $error");
+                  _showSnackBar("Gagal simpan data siswa: $error");
+                  return Future.error(error!);
+                });
+
+            _showSnackBar("Akun & data siswa berhasil dibuat!");
+          } else {
+            _showSnackBar("Error: ${e.message}");
+            return;
+          }
         }
       }
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-      }
-    } catch (e) {
-      _showSnackBar("Error: $e");
+      // MASUK HOME
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } catch (e, s) {
+      print("ERROR: $e\n$s");
+      _showSnackBar("Kesalahan: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -175,12 +216,12 @@ class _LoginSiswaState extends State<LoginSiswa> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey, // TAMBAH INI
+      key: _scaffoldKey,
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // HEADER BIRU
+            // HEADER
             Container(
               width: double.infinity,
               padding: EdgeInsets.fromLTRB(
@@ -199,9 +240,9 @@ class _LoginSiswaState extends State<LoginSiswa> {
                   bottom: Radius.circular(40),
                 ),
               ),
-              child: Column(
+              child: const Column(
                 children: [
-                  const Text(
+                  Text(
                     "UJIAJA",
                     style: TextStyle(
                       fontFamily: "LeckerliOne",
@@ -209,9 +250,9 @@ class _LoginSiswaState extends State<LoginSiswa> {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Silakan login menggunakan nama lengkap, NISN, Kelas, Email, dan Password. Jika belum memiliki akun, akan dibuat otomatis.",
+                  SizedBox(height: 8),
+                  Text(
+                    "Masukkan data Anda. Jika belum terdaftar, akun akan dibuat otomatis.",
                     style: TextStyle(fontSize: 14, color: Colors.white70),
                     textAlign: TextAlign.center,
                   ),
@@ -220,7 +261,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
             ),
             const SizedBox(height: 30),
 
-            // FORM CARD
+            // FORM
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Card(
@@ -233,7 +274,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
                   child: Column(
                     children: [
                       const Text(
-                        "Log in",
+                        "Login Siswa",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -244,7 +285,7 @@ class _LoginSiswaState extends State<LoginSiswa> {
                       _buildTextField("Nama", _namaController),
                       const SizedBox(height: 16),
                       _buildTextField(
-                        "Nisn",
+                        "NISN",
                         _nisnController,
                         keyboardType: TextInputType.number,
                       ),

@@ -21,44 +21,41 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadUserData();
   }
 
-  // TAMBAHKAN FUNGSI INI!
-  void _showSnackBar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  Future<void> _loadUserData() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      _logout();
+      return;
+    }
+
+    final res = await supabase
+        .from('siswa')
+        .select()
+        .eq('email', user.email!)
+        .maybeSingle();
+    if (res == null) {
+      _showSnackBar("Data siswa tidak ditemukan!");
+      await supabase.auth.signOut();
+      _logout();
+      return;
+    }
+
+    setState(() => _siswa = res);
+    await _loadData(); // load ujian & nilai
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        _logout();
-        return;
-      }
-
-      // GUNAKAN EMAIL DARI AUTH → CARI SISWA
-      final siswaRes = await supabase
-          .from('siswa')
-          .select()
-          .eq('email', user.email!)
-          .maybeSingle(); // AMAN JIKA TIDAK ADA
-
-      if (siswaRes == null) {
-        _showSnackBar("Data siswa tidak ditemukan");
-        _logout();
-        return;
-      }
-
-      // ignore: unnecessary_cast
-      final siswa = siswaRes as Map<String, dynamic>;
-      final nisn = siswa['nisn'];
+      final nisn = _siswa!['nisn'];
 
       final ujianRes = await supabase
           .from('ujian')
           .select('id, nama, mapel_id, durasi, mata_pelajaran!mapel_id(nama)')
-          .eq('kelas', siswa['kelas']);
+          .eq('kelas', _siswa!['kelas']);
 
       final nilaiRes = await supabase
           .from('hasil')
@@ -69,13 +66,12 @@ class _HomePageState extends State<HomePage> {
           .order('created_at', ascending: false);
 
       setState(() {
-        _siswa = siswa;
         _ujianList = List.from(ujianRes);
         _nilaiList = List.from(nilaiRes);
         _isLoading = false;
       });
     } catch (e) {
-      _showSnackBar("Error: $e"); // SEKARANG ADA!
+      _showSnackBar("Error load data: $e");
       setState(() => _isLoading = false);
     }
   }
@@ -87,6 +83,10 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(builder: (_) => const LoginSiswa()),
       (route) => false,
     );
+  }
+
+  void _showSnackBar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -118,7 +118,6 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // SELAMAT DATANG
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -148,8 +147,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
-                  // MENU
                   _menuCard(
                     Icons.person_search,
                     "Pengguna",
@@ -238,16 +235,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showProfil() {
-    if (_siswa == null) {
-      _showSnackBar("Data profil tidak tersedia");
-      return;
-    }
-
+    if (_siswa == null) return;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => PenggunaSiswaPage(siswa: _siswa!), // PASS DATA!
-      ),
+      MaterialPageRoute(builder: (_) => PenggunaSiswaPage(siswa: _siswa!)),
     );
   }
 

@@ -66,10 +66,8 @@ class _LoginGuruState extends State<LoginGuru> {
           await _saveNipToGuruTable(signUpResponse.user!.id, nip);
 
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Akun berhasil dibuat! Selamat datang 👋'),
-            ),
+          _messengerKey.currentState?.showSnackBar(
+            SnackBar(content: Text('Akun berhasil dibuat! Selamat datang')),
           );
 
           Navigator.pushReplacement(
