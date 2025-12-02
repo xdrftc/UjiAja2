@@ -1,10 +1,12 @@
-// lib/screen/guru/daftarSoalUlangan.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'detailjurusan.dart';
 
 class DaftarSoalUlangan extends StatefulWidget {
-  const DaftarSoalUlangan({super.key});
+  final String mapel;
+
+  const DaftarSoalUlangan({super.key, required this.mapel});
+
   @override
   State<DaftarSoalUlangan> createState() => _DaftarSoalUlanganState();
 }
@@ -56,10 +58,8 @@ class _DaftarSoalUlanganState extends State<DaftarSoalUlangan> {
 
   @override
   Widget build(BuildContext context) {
-    // UI grid jurusan kamu yang lama tetap sama
-    // cuma ganti Navigator.push ke DetailJurusan
     return Scaffold(
-      appBar: AppBar(title: const Text('Pilih Jurusan - Buat Soal')),
+      appBar: AppBar(title: Text('Pilih Jurusan - ${widget.mapel}')),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(
@@ -81,7 +81,26 @@ class _DaftarSoalUlanganState extends State<DaftarSoalUlangan> {
                       ),
                     );
                   },
-                  child: Card(/* UI card jurusan kamu */),
+                  child: Card(
+                    color: Color(
+                      int.parse(j['warna'].replaceFirst('#', '0xFF')),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(j['logo'], height: 50),
+                        const SizedBox(height: 8),
+                        Text(
+                          j['nama'],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),

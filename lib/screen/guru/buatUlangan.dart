@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ujiaja/provider/authProvider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class BuatSoalScreen extends ConsumerStatefulWidget {
-  const BuatSoalScreen({super.key});
+class BuatSoalScreen extends StatefulWidget {
+  final String mapelId;
+  final String namaMapel;
+
+  const BuatSoalScreen({
+    Key? key,
+    required this.mapelId,
+    required this.namaMapel,
+  }) : super(key: key);
 
   @override
-  ConsumerState<BuatSoalScreen> createState() => _BuatSoalScreenState();
+  State<BuatSoalScreen> createState() => _BuatSoalScreenState();
 }
 
-class _BuatSoalScreenState extends ConsumerState<BuatSoalScreen> {
+class _BuatSoalScreenState extends State<BuatSoalScreen> {
   final _pertanyaanController = TextEditingController();
 
   Future<void> _simpanSoal() async {
-    final userId = ref.read(authProvider).currentUser?.id;
-    // atau: ref.read(authProvider).user?.id
+    final userId = Supabase.instance.client.auth.currentUser?.id;
 
     if (userId == null) {
       ScaffoldMessenger.of(
@@ -24,7 +29,7 @@ class _BuatSoalScreenState extends ConsumerState<BuatSoalScreen> {
     }
 
     try {
-      await ref.read(supabaseProvider).from('soal').insert({
+      await Supabase.instance.client.from('soal').insert({
         'pertanyaan': _pertanyaanController.text,
         'pilihan': {
           'A': 'Pilihan A',
@@ -34,7 +39,7 @@ class _BuatSoalScreenState extends ConsumerState<BuatSoalScreen> {
         },
         'jawaban_benar': 'A',
         'ujian_id': 'temp-ujian-id', // nanti diganti sesuai ujian
-        'guru_id': userId, // ← INI YANG KAMU CARI!
+        'guru_id': userId, // ID guru yang sedang login
       });
 
       ScaffoldMessenger.of(
